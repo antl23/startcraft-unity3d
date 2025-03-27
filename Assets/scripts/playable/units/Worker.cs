@@ -11,7 +11,7 @@ public class Worker : Unit {
 	public Resource resource;
 
 	private Building build;
-
+	private bool isbuilding = false;
 	private Canvas buildCanvas; 
 	private bool droping = false;
 

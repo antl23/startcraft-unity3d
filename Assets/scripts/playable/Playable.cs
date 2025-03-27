@@ -49,8 +49,13 @@ public abstract class Playable : StrategyObject {
 	private Path path;
 	private int currentWaypoint;
 	protected Seeker seeker;
+    public bool isPatrolling = false;
+    public Vector3 patrolStartPos;
+    public Vector3 patrolTargetPos;
+    private bool movingToPatrolTarget = true;
 
-	protected Animator anim;
+
+    protected Animator anim;
 	
 	Dictionary<Action,float> lastAction = new Dictionary<Action,float>(); 
 	
@@ -181,13 +186,164 @@ public abstract class Playable : StrategyObject {
 		
 		attacking();
 		if (!immobile) moving();
+        if (Input.GetKeyDown(KeyCode.S)) StopMovement();
+        if (Input.GetKeyDown(KeyCode.A)) AttackMove();
+        if (Input.GetKeyDown(KeyCode.P))
+        {
+            foreach (Playable unit in FindObjectsOfType<Playable>())
+            {
+                if (unit.selected)
+                {
+                    unit.Patrol();
+                }
+            }
+        }
+        if (Input.GetMouseButtonDown(1)) isPatrolling = false;
+        if (isPatrolling)
+        {
+			Debug.Log(transform.name);
+			Debug.Log(transform.position);
+            float distanceToTarget = Vector3.Distance(new Vector3(transform.position.x, 0, transform.position.z),  new Vector3(patrolTargetPos.x, 0, patrolTargetPos.z)
+);
 
-		if (selected) UpdateSelectLife ();
+            if (distanceToTarget <= 1.0f)
+            {
+				Vector3 temp = patrolTargetPos;
+                patrolTargetPos = patrolStartPos;
+				patrolStartPos = temp;
+
+                if (movingToPatrolTarget)
+                    goTo(patrolTargetPos);
+            }
+        }
+        //if (Input.GetKeyDown(KeyCode.H)) HoldPosition();
+        if (selected) UpdateSelectLife ();
 
 		Ai();
 	}
+    private void StopMovement()
+    {
+        if (!selected) return;
+        path = null;
+        isPatrolling = false;
+    }
+    public virtual void AttackMove()
+    {
+        if (!selected) return;
+        bool hasPlayer2Target = false;
 
-	private void UpdateSelectLife(){
+        Unit closestEnemy = ClosestEnemy();
+        Building closestBuilding = ClosestBuilding();
+
+        Playable closestTarget = null;
+        float closestDistance = float.MaxValue;
+        if (closestEnemy != null && closestEnemy.CompareTag("player2"))
+        {
+            hasPlayer2Target = true;
+        }
+        if (closestBuilding != null && closestBuilding.CompareTag("player2"))
+        {
+            hasPlayer2Target = true;
+        }
+
+        if (!hasPlayer2Target)
+        {
+            return;
+        }
+
+        if (closestEnemy != null)
+        {
+            float enemyDistance = Vector3.Distance(this.transform.position, closestEnemy.transform.position);
+            if (enemyDistance < closestDistance && closestEnemy.CompareTag("player1") == false)
+            {
+                closestDistance = enemyDistance;
+                closestTarget = closestEnemy;
+            }
+        }
+
+        if (closestBuilding != null)
+        {
+            float buildingDistance = Vector3.Distance(this.transform.position, closestBuilding.transform.position);
+            if (buildingDistance < closestDistance && closestBuilding.CompareTag("player1") == false)
+            {
+                closestDistance = buildingDistance;
+                closestTarget = closestBuilding;
+            }
+        }
+
+        if (closestTarget != null)
+        {
+            isPatrolling = false;
+            Attack(closestTarget);
+        }
+    }
+    private void Patrol()
+    {
+        if (!selected) return;
+
+        patrolStartPos = transform.position;
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+
+		if (Physics.Raycast(ray, out hit))
+		{
+			if (hit.collider.CompareTag("Terrain"))
+			{
+				patrolTargetPos = hit.point;
+				isPatrolling = true;
+				movingToPatrolTarget = true;
+				goTo(patrolTargetPos);
+			}
+		}
+        }
+    public Unit ClosestEnemy()
+    {
+        Unit[] allUnits = FindObjectsOfType<Unit>();
+        Unit closestEnemy = null;
+        float closestDistance = float.MaxValue;
+
+        foreach (Unit unit in allUnits)
+        {
+            if (unit != this && unit.tag != this.tag)
+            {
+                float distance = Vector3.Distance(this.transform.position, unit.transform.position);
+
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closestEnemy = unit;
+                }
+            }
+        }
+
+        return closestEnemy;
+    }
+    public Building ClosestBuilding()
+    {
+        Building[] allBuildings = FindObjectsOfType<Building>();
+        Building closestBuilding = null;
+        float closestDistance = float.MaxValue;
+
+        foreach (Building building in allBuildings)
+        {
+
+            if (building != this)
+            {
+                float distance = Vector3.Distance(this.transform.position, building.transform.position);
+
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closestBuilding = building;
+                }
+            }
+        }
+
+        return closestBuilding;
+    }
+
+
+    private void UpdateSelectLife(){
 		//selection.GetComponent<Renderer>().Color = true;
 
 		float percent = ((float) life) / maxLife;
@@ -215,7 +371,8 @@ public abstract class Playable : StrategyObject {
 		} else anim.SetBool ("Attack", false);
 	}
 	private void moving(){
-		if (path != null) {
+        
+        if (path != null) {
 			
 			anim.SetBool("Moving", true);
 			
