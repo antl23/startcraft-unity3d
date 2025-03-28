@@ -49,9 +49,9 @@ public abstract class Playable : StrategyObject {
 	private Path path;
 	private int currentWaypoint;
 	protected Seeker seeker;
-    public bool isPatrolling = false;
-    public Vector3 patrolStartPos;
-    public Vector3 patrolTargetPos;
+    private bool isPatrolling = false;
+    private Vector3 patrolStartPos;
+    private Vector3 patrolTargetPos;
     private bool movingToPatrolTarget = true;
 
 

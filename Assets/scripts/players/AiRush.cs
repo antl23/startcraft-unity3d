@@ -6,7 +6,7 @@ using System.Collections.Generic;
 public class AiRush : Player{
 	private GameObject[] deploys;
 	
-	private const int TIME_RUSH = 3*5;
+	private const int TIME_RUSH = 3*60;
 	private const int AMOUNT_RUSH = 5;
 	
 	private int timeToRush = TIME_RUSH;
