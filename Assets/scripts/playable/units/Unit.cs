@@ -13,4 +13,5 @@ public abstract class Unit : Playable {
 		Quaternion rotation = Quaternion.LookRotation(destiny - transform.position);
 		transform.rotation = Quaternion.Slerp(transform.rotation, rotation, Time.deltaTime * speed);
 	}
+
 }

@@ -6,7 +6,7 @@ using System.Collections.Generic;
 public class AiRush : Player{
 	private GameObject[] deploys;
 	
-	private const int TIME_RUSH = 1*5;
+	private const int TIME_RUSH = 3*5;
 	private const int AMOUNT_RUSH = 5;
 	
 	private int timeToRush = TIME_RUSH;
@@ -97,7 +97,7 @@ public class AiRush : Player{
 	}
 
 	private string[] enemiesOnLevel(int level){
-		if (level < 2) return new string[]{"Zergling"}; 
+		if (level < 2) return new string[]{"Hydralisk"}; 
 		else if (level < 5) return new string[]{"Zergling", "Hydralisk"}; 
 		else return new string[]{"Zergling", "Mutalisk", "Hydralisk"}; 
 	}

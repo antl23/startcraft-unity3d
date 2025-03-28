@@ -91,7 +91,8 @@ public abstract class Playable : StrategyObject {
 	
 	/*
 	* Buildings and units start at the beginning, and then we instantiate new buildings, 
-	* This method prevents to childrend duplications (like selection)
+	* This method prevents to childrend duplications (like selection) 
+	* test line
 	*/
 	private void addSelection(){
 		Transform s = transform.Find ("_Selection");
@@ -186,6 +187,7 @@ public abstract class Playable : StrategyObject {
 		
 		attacking();
 		if (!immobile) moving();
+		//New inputs
         if (Input.GetKeyDown(KeyCode.S)) StopMovement();
         if (Input.GetKeyDown(KeyCode.A)) AttackMove();
         if (Input.GetKeyDown(KeyCode.P))
@@ -194,12 +196,15 @@ public abstract class Playable : StrategyObject {
             {
                 if (unit.selected)
                 {
+					//only patrol if selected and you are the unit being ordered
                     unit.Patrol();
                 }
             }
         }
+		//cancel patrol route
         if (Input.GetMouseButtonDown(1)) isPatrolling = false;
-        if (isPatrolling)
+        //patrol move logic that handles return movement
+		if (isPatrolling)
         {
 			Debug.Log(transform.name);
 			Debug.Log(transform.position);
@@ -230,63 +235,68 @@ public abstract class Playable : StrategyObject {
     public virtual void AttackMove()
     {
         if (!selected) return;
-        bool hasPlayer2Target = false;
-
+        bool hasTarget = false;
+        //check for closest enemy or building to attack
         Unit closestEnemy = ClosestEnemy();
         Building closestBuilding = ClosestBuilding();
 
         Playable closestTarget = null;
         float closestDistance = float.MaxValue;
-        if (closestEnemy != null && closestEnemy.CompareTag("player2"))
+
+		//check validity of the target
+        if (closestEnemy != null && !closestEnemy.CompareTag(this.tag))
         {
-            hasPlayer2Target = true;
-        }
-        if (closestBuilding != null && closestBuilding.CompareTag("player2"))
-        {
-            hasPlayer2Target = true;
+            float enemyDistance = Vector3.Distance(this.transform.position, closestEnemy.transform.position);
+            if (enemyDistance < closestDistance)
+            {
+                closestDistance = enemyDistance;
+                closestTarget = closestEnemy;
+                hasTarget = true;
+            }
         }
 
-        if (!hasPlayer2Target)
+        if (closestBuilding != null && !closestBuilding.CompareTag(this.tag))
+        {
+            float buildingDistance = Vector3.Distance(this.transform.position, closestBuilding.transform.position);
+            if (buildingDistance < closestDistance)
+            {
+                closestDistance = buildingDistance;
+                closestTarget = closestBuilding;
+                hasTarget = true;
+            }
+        }
+
+        if (!hasTarget)
         {
             return;
         }
 
-        if (closestEnemy != null)
+        if (this is Attacker)
         {
-            float enemyDistance = Vector3.Distance(this.transform.position, closestEnemy.transform.position);
-            if (enemyDistance < closestDistance && closestEnemy.CompareTag("player1") == false)
-            {
-                closestDistance = enemyDistance;
-                closestTarget = closestEnemy;
-            }
+            isPatrolling = false;
+            goTo(closestTarget.transform.position);
+            return;
         }
 
-        if (closestBuilding != null)
-        {
-            float buildingDistance = Vector3.Distance(this.transform.position, closestBuilding.transform.position);
-            if (buildingDistance < closestDistance && closestBuilding.CompareTag("player1") == false)
-            {
-                closestDistance = buildingDistance;
-                closestTarget = closestBuilding;
-            }
-        }
-
-        if (closestTarget != null)
+        if (this is Worker)
         {
             isPatrolling = false;
             Attack(closestTarget);
+            return;
         }
     }
+
     private void Patrol()
     {
         if (!selected) return;
-
+        //patrols start from their current location and it uses raycast to get the position of where the player clicked on the terrain to set a patrol target
         patrolStartPos = transform.position;
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
 		if (Physics.Raycast(ray, out hit))
 		{
+			//only allow terrains to be targets
 			if (hit.collider.CompareTag("Terrain"))
 			{
 				patrolTargetPos = hit.point;
@@ -298,6 +308,7 @@ public abstract class Playable : StrategyObject {
         }
     public Unit ClosestEnemy()
     {
+		//gets all the units in the scene then finds the closest one
         Unit[] allUnits = FindObjectsOfType<Unit>();
         Unit closestEnemy = null;
         float closestDistance = float.MaxValue;
@@ -320,6 +331,7 @@ public abstract class Playable : StrategyObject {
     }
     public Building ClosestBuilding()
     {
+        //gets all the buildings in the scene then finds the closest one
         Building[] allBuildings = FindObjectsOfType<Building>();
         Building closestBuilding = null;
         float closestDistance = float.MaxValue;
@@ -553,7 +565,7 @@ public abstract class Playable : StrategyObject {
 		goTo (closestPoint);
 	}
 	public void goTo(Vector3 destination){
-		//Debug.Log ("Go from " + transform.position + " to "  +destination);
+		Debug.Log (this.name+"Go from " + transform.position + " to "  +destination);
 		if (!immobile && seeker != null && seeker.IsDone()) {
 			seeker.StartPath (transform.position, destination, OnPathComplete);
 		}
